@@ -19,6 +19,9 @@ history = []  # 用于记录每一步下棋的历史
 lock = threading.Lock()  # 用于人机平行操作时的严格锁定
 scheduler = sched.scheduler(time.time, time.sleep)  # 用于操作调度
 
+# 用于存储提示元素
+hint_items = []
+
 def ai():
     global cut_count   # 统计剪枝次数
     cut_count = 0
@@ -176,6 +179,9 @@ def game_entry():
 
     # 添加回棋功能
     def undo():
+        # 在回棋前清除提示
+        clear_previous_hint()
+
         print(history)
         print("Undo success")
         if history:  # 确保有历史记录
@@ -185,11 +191,14 @@ def game_entry():
 
                 # 从对应列表中移除该步
                 if player == "Human" or player == "Player 1":
-                    human_list.remove((x, y))
+                    if (x, y) in human_list:
+                        human_list.remove((x, y))
                 else:
-                    ai_list.remove((x, y))
+                    if (x, y) in ai_list:
+                        ai_list.remove((x, y))
 
-                ai_and_human_list.remove((x, y))
+                if(x, y) in ai_and_human_list:
+                    ai_and_human_list.remove((x, y))
 
                 # 找到最后一步棋子并删除
                 for item in win.items[:]:  # 遍历所有绘制的图形
@@ -207,6 +216,46 @@ def game_entry():
                 change -= 1  # 回退一次玩家轮换
 
     win.createButton(text="回棋", command=undo, x=10, y=10)
+
+    # 创建提示按钮
+    def create_hint_button():
+        button_hint = win.createButton(
+            text="提示",
+            command=lambda: show_hint(),
+            x=200,
+            y=10
+        )
+
+    def clear_previous_hint():
+        # 遍历并移除之前显示的提示
+        for item in hint_items:
+            item.undraw()  # 移除提示元素
+        hint_items.clear()  # 清空提示元素列表
+        win.update()  # 强制更新图形界面
+
+    def show_hint():
+        clear_previous_hint()  # 清除之前的提示
+
+        # 获取AI的最佳落子位置
+        best_move = ai()  # ai() 返回的是最佳落子位置 (x, y)
+
+        # 在图形界面上标记此位置
+        hint_circle = Circle(Point(GRID_WIDTH * best_move[0], GRID_WIDTH * best_move[1]), 16)
+        hint_circle.setWidth(3)
+        hint_circle.setOutline("red")  # 设置红色边框
+        hint_circle.draw(win)
+        hint_items.append(hint_circle)  # 添加提示圆圈到列表中
+
+        # 显示文本提示
+        hint_text = Text(Point(GRID_WIDTH * best_move[0], GRID_WIDTH * best_move[1] - 20), "Best Move")
+        hint_text.setSize(10)
+        hint_text.setTextColor("red")
+        hint_text.draw(win)
+        hint_items.append(hint_text)  # 添加提示文本到列表中
+
+        win.after(3000, lambda: clear_previous_hint())  # 延时3秒后清除提示
+
+    create_hint_button()
 
     def set_game_mode(mode):
         nonlocal game_mode
