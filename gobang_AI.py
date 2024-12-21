@@ -233,8 +233,6 @@ def game_win(list):
                         m + 2, n - 2) in list and (m + 3, n - 3) in list and (m + 4, n - 4) in list:
                 return True
     return False
-
-
 def gobangwin():
     win = GraphWin("This is a gobang game", GRID_WIDTH * COLUMN, GRID_WIDTH * ROW)
     win.setBackground("yellow")
@@ -254,6 +252,7 @@ def gobangwin():
     return win
 
 
+
 def main():
     win = gobangwin()
 
@@ -264,6 +263,7 @@ def main():
     change = 0
     g = 0
 
+    # 人机对战模式
     def human_turn():
         p2 = win.getMouse()
         a2 = round((p2.getX()) / GRID_WIDTH)
@@ -298,6 +298,38 @@ def main():
                 return True
         return False
 
+    # 让两人对战
+    def two_player_turn():
+        p2 = win.getMouse()
+        a2 = round((p2.getX()) / GRID_WIDTH)
+        b2 = round((p2.getY()) / GRID_WIDTH)
+        if (a2, b2) not in list3:
+            with lock:
+                if change % 2 == 0:  # Player 1's turn
+                    list2.append((a2, b2))
+                    history.append((a2, b2, "Player 1"))
+                    piece = Circle(Point(GRID_WIDTH * a2, GRID_WIDTH * b2), 16)
+                    piece.setFill('black')
+                    piece.draw(win)
+                else:  # Player 2's turn
+                    list1.append((a2, b2))
+                    history.append((a2, b2, "Player 2"))
+                    piece = Circle(Point(GRID_WIDTH * a2, GRID_WIDTH * b2), 16)
+                    piece.setFill('white')
+                    piece.draw(win)
+
+                list3.append((a2, b2))
+
+                if game_win(list2):
+                    message = Text(Point(100, 100), "Player 1 wins.")
+                    message.draw(win)
+                    return True
+                if game_win(list1):
+                    message = Text(Point(100, 100), "Player 2 wins.")
+                    message.draw(win)
+                    return True
+        return False
+
     # 添加回棋功能
     def undo():
         print(history)
@@ -308,7 +340,7 @@ def main():
                 x, y, player = last_move
 
                 # 从对应列表中移除该步
-                if player == "Human":
+                if player == "Human" or player == "Player 1":
                     list2.remove((x, y))
                 else:
                     list1.remove((x, y))
@@ -328,16 +360,43 @@ def main():
 
                 win.redraw()  # 强制窗口重绘
 
-    win.createButton(
-        text="回棋", command=undo, x=10, y=10
-    )
+    win.createButton(text="回棋", command=undo, x=10, y=10)
+
+    def set_game_mode(mode):
+        nonlocal game_mode
+        game_mode = mode
+
+    # 创建“人机对战”和“人人对战”按钮
+    def create_game_mode_buttons():
+        # 创建"人机对战"按钮
+        button_ai = win.createButton(
+            text="人机对战",
+            command=lambda: set_game_mode("AI"),
+            x=60,
+            y=10
+        )
+        # 创建"人人对战"按钮
+        button_two_players = win.createButton(
+            text="人人对战",
+            command=lambda: set_game_mode("Two Players"),
+            x=130,
+            y=10
+        )
+
+    create_game_mode_buttons()
+
+    game_mode = "AI"  # 默认模式为人机对战
 
     while g == 0:
-        if change % 2 == 0:  # Human turn
-            scheduler.enter(0, 1, human_turn)
-            scheduler.run()
-        else:  # AI turn
-            if ai_turn():
+        if game_mode == "AI":
+            if change % 2 == 0:  # Human turn
+                scheduler.enter(0, 1, human_turn)
+                scheduler.run()
+            else:  # AI turn
+                if ai_turn():
+                    g = 1
+        elif game_mode == "Two Players":
+            if two_player_turn():
                 g = 1
         change += 1
 
@@ -345,7 +404,5 @@ def main():
     message.draw(win)
     win.getMouse()
     win.close()
-
-
 
 main()
