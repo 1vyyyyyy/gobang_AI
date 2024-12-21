@@ -110,19 +110,52 @@ def cal_score(m, n, x_decrict, y_derice, enemy_list, my_list, score_all_arr):
     return add_score + max_score_shape[0]
 
 def game_win(list):
-    for m in range(COLUMN):
-        for n in range(ROW):
-
-            if n < ROW - 4 and (m, n) in list and (m, n + 1) in list and (m, n + 2) in list and (
-                    m, n + 3) in list and (m, n + 4) in list:
-                return True
-            elif m < ROW - 4 and (m, n) in list and (m + 1, n) in list and (m + 2, n) in list and (
-                        m + 3, n) in list and (m + 4, n) in list:
-                return True
-            elif m < ROW - 4 and n < ROW - 4 and (m, n) in list and (m + 1, n + 1) in list and (
-                        m + 2, n + 2) in list and (m + 3, n + 3) in list and (m + 4, n + 4) in list:
-                return True
-            elif m < ROW - 4 and n > 3 and (m, n) in list and (m + 1, n - 1) in list and (
-                        m + 2, n - 2) in list and (m + 3, n - 3) in list and (m + 4, n - 4) in list:
-                return True
+    """
+    判断某一方是否获胜，只检查最后下的棋子周围区域
+    :param list: 当前玩家的棋子列表（ai 或 human）
+    :return: 如果存在五子连珠则返回 True，否则返回 False
+    """
+    # 检查每个棋子的坐标
+    for (m, n) in list:
+        # 检查水平、垂直、对角线四个方向
+        # 1. 水平检查
+        if check_direction(m, n, 1, 0, list):  # 水平：沿 x 轴
+            return True
+        # 2. 垂直检查
+        if check_direction(m, n, 0, 1, list):  # 垂直：沿 y 轴
+            return True
+        # 3. 主对角线检查（左上到右下）
+        if check_direction(m, n, 1, 1, list):  # 主对角线：沿 x 和 y 轴都增加
+            return True
+        # 4. 副对角线检查（右上到左下）
+        if check_direction(m, n, 1, -1, list):  # 副对角线：x 增加，y 减少
+            return True
     return False
+
+def check_direction(x, y, dx, dy, list):
+    """
+    检查给定方向上是否有五子连珠
+    :param x: 当前棋子的位置x坐标
+    :param y: 当前棋子的位置y坐标
+    :param dx: x方向的增量（1表示右，-1表示左）
+    :param dy: y方向的增量（1表示下，-1表示上）
+    :param list: 当前玩家的棋子位置列表
+    :return: 如果该方向上有五子连珠则返回 True，否则返回 False
+    """
+    count = 1  # 当前棋子算作一个
+    # 向前检查（沿着方向(dx, dy)）
+    for i in range(1, 5):
+        nx, ny = x + i * dx, y + i * dy
+        if (nx, ny) in list:
+            count += 1
+        else:
+            break
+    # 向后检查（沿着相反方向(-dx, -dy)）
+    for i in range(1, 5):
+        nx, ny = x - i * dx, y - i * dy
+        if (nx, ny) in list:
+            count += 1
+        else:
+            break
+    # 如果连成五个，则返回True
+    return count >= 5
